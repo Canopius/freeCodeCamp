@@ -44,9 +44,9 @@ function Challenges({
     challenge => challenge.isCompleted
   );
 
-  const [allTopics, newTopic] = useState([]);
-  const [activeTags, updateTags] = useState([]);
-  const [isExpanded, toggleExpanded] = useState(false);
+  const [allTopics, newTopic] = useState<string[]>([]);
+  const [activeTags, updateTags] = useState<string[]>([]);
+  const [isExpanded, toggleExpanded] = useState<boolean>(false);
 
   function getAllTopics() {
     challengesWithCompleted.map(challenge => {
