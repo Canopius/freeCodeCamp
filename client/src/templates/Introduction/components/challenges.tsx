@@ -1,5 +1,5 @@
 import { Link } from 'gatsby';
-import React from 'react';
+import React, { useState } from 'react';
 import { withTranslation, useTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -7,6 +7,7 @@ import type { Dispatch } from 'redux';
 
 import GreenNotCompleted from '../../../assets/icons/green-not-completed';
 import GreenPass from '../../../assets/icons/green-pass';
+import DropDown from '../../../assets/icons/dropdown';
 import { executeGA } from '../../../redux/actions';
 import { SuperBlocks } from '../../../../../config/certification-settings';
 import { ChallengeWithCompletedNode } from '../../../redux/prop-types';
@@ -43,6 +44,58 @@ function Challenges({
     challenge => challenge.isCompleted
   );
 
+  const [allTopics, newTopic] = useState<string[]>([]);
+  const [activeTags, updateTags] = useState<string[]>([]);
+  const [isExpanded, toggleExpanded] = useState<boolean>(false);
+
+  function getAllTopics() {
+    challengesWithCompleted.map(challenge => {
+      if (challenge.tags != null) {
+        const tagArr = challenge.tags.split(',');
+        tagArr.map(tag => {
+          if (!allTopics.includes(tag)) {
+            allTopics.unshift(tag);
+            newTopic(allTopics);
+          }
+        });
+      }
+    });
+  }
+
+  function handleRemoveTag(topic: string) {
+    const clone = [...activeTags];
+    const index = clone.indexOf(topic);
+    if (index !== -1) {
+      clone.splice(index, 1);
+      updateTags(clone);
+    }
+  }
+
+  function handleAddTag(topic: string) {
+    activeTags.unshift(topic);
+    updateTags(activeTags);
+  }
+
+  function filterByTag(challengeTags: string) {
+    if (activeTags.length == 0) {
+      return true;
+    }
+
+    if (challengeTags == null) {
+      return false;
+    }
+
+    const tagArr = challengeTags.split(',');
+    for (const tag of tagArr) {
+      if (activeTags.includes(tag)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  getAllTopics();
+
   return isGridMap ? (
     <>
       {firstIncompleteChallenge && (
@@ -58,6 +111,52 @@ function Challenges({
           </Link>
         </div>
       )}
+
+      <section className='topic-filter'>
+        <button
+          className={`topic-filter-button ${
+            isExpanded
+              ? 'topic-filter-button-open'
+              : 'topic-filter-button-closed'
+          }`}
+          onClick={() => toggleExpanded(!isExpanded)}
+        >
+          Topics
+          <DropDown />
+        </button>
+
+        <ul
+          className={`topic-filter-select ${isExpanded ? '' : 'filter-closed'}`}
+        >
+          {allTopics.map(topic => {
+            if (!activeTags.includes(topic)) {
+              return (
+                <li key={topic}>
+                  <button
+                    className='topic-select-btn'
+                    onClick={() => handleAddTag(topic)}
+                  >
+                    {topic}
+                  </button>
+                </li>
+              );
+            }
+          })}
+        </ul>
+
+        <div className='active-tags'>
+          {activeTags.map(topic => (
+            <button
+              key={topic}
+              className='topic-tag'
+              onClick={() => handleRemoveTag(topic)}
+            >
+              <span>{topic}</span>X
+            </button>
+          ))}
+        </div>
+      </section>
+
       <nav
         aria-label={
           blockTitle ? t('aria.steps-for', { blockTitle }) : t('aria.steps')
@@ -77,7 +176,7 @@ function Challenges({
                   to={challenge.fields.slug}
                   className={`map-grid-item ${
                     +challenge.isCompleted ? 'challenge-completed' : ''
-                  }`}
+                  } ${filterByTag(challenge.tags) ? '' : 'filtered-out'}`}
                 >
                   <span className='sr-only'>{t('aria.step')}</span>
                   <span>{i + 1}</span>
